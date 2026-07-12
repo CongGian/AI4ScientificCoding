@@ -15,7 +15,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: aros-ncsu/ai4scientificcoding-notebook
+  IMAGE_NAME: conggian/ai4scientificcoding-notebook
 
 jobs:
   build:
