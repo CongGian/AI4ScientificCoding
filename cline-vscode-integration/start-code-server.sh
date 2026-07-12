@@ -9,14 +9,30 @@ set -euo pipefail
 # workspace instead of a root-owned or unset location.
 export HOME=/home/jovyan
 export XDG_DATA_HOME=/home/jovyan/.local/share
+export LLM_PROXY_PORT=${LLM_PROXY_PORT:-8010}
+export LLM_PROXY_URL=${LLM_PROXY_URL:-http://127.0.0.1:${LLM_PROXY_PORT}/v1}
+export LLM_LOG_DIR=${LLM_LOG_DIR:-/home/jovyan/.local/share/llm-proxy/logs}
+export OPENAI_BASE_URL=${OPENAI_BASE_URL:-${LLM_PROXY_URL}}
+export OPENAI_API_BASE=${OPENAI_API_BASE:-${LLM_PROXY_URL}}
+export OPENAI_API_KEY=${OPENAI_API_KEY:-${CLINE_API_KEY:-proxy-local}}
+export CLINE_BASE_URL=${CLINE_BASE_URL:-${LLM_PROXY_URL}}
+export CLINE_API_KEY=${CLINE_API_KEY:-${OPENAI_API_KEY}}
+export MARIMO_BASE_URL=${MARIMO_BASE_URL:-${LLM_PROXY_URL}}
 
 # Cline provider defaults. JupyterHub passes CLINE_API_KEY from .env when set.
 # Keep the key out of tracked files; leave it empty here if not provided.
 export CLINE_API_PROVIDER=${CLINE_API_PROVIDER:-openai-compatible}
-export CLINE_API_KEY=${CLINE_API_KEY:-}
 export CLINE_MODEL=${CLINE_MODEL:-Kimi-K2.6}
-export CLINE_BASE_URL=${CLINE_BASE_URL:-https://llm.jetstream-cloud.org/v1}
 export CLINE_VERSION=${CLINE_VERSION:-3.88.1}
+
+mkdir -p "${LLM_LOG_DIR}"
+
+uvicorn llm_proxy.app:app \
+  --host 127.0.0.1 \
+  --port "${LLM_PROXY_PORT}" \
+  --log-level warning &
+
+echo "LLM logging proxy started (PID $!) on ${LLM_PROXY_URL}"
 
 # Ensure the per-user settings directories exist before writing config files.
 mkdir -p /home/jovyan/.local/share/code-server/User
@@ -44,6 +60,7 @@ api_key = os.environ["CLINE_API_KEY"]
 model = os.environ["CLINE_MODEL"]
 base_url = os.environ["CLINE_BASE_URL"]
 version = os.environ["CLINE_VERSION"]
+llm_proxy_url = os.environ["LLM_PROXY_URL"]
 
 settings_dir = Path("/home/jovyan/.cline/data/settings")
 settings_dir.mkdir(parents=True, exist_ok=True)
@@ -57,7 +74,7 @@ settings_dir.mkdir(parents=True, exist_ok=True)
                 "provider": provider,
                 "apiKey": api_key,
                 "model": model,
-                "baseUrl": base_url,
+                "baseUrl": llm_proxy_url,
             }
         }
     },
@@ -68,7 +85,7 @@ Path("/home/jovyan/.cline/data/globalState.json").write_text(json.dumps({
     "clineVersion": version,
     "planModeApiProvider": provider,
     "actModeApiProvider": provider,
-    "openAiBaseUrl": base_url,
+    "openAiBaseUrl": llm_proxy_url,
     "planModeOpenAiModelId": model,
     "actModeOpenAiModelId": model,
     "azureApiVersion": "",
@@ -93,7 +110,7 @@ fi
 
 # Configure Marimo AI settings
 mkdir -p /home/jovyan/.config/marimo
-cat > /home/jovyan/.config/marimo/marimo.toml << 'MARIMO'
+cat > /home/jovyan/.config/marimo/marimo.toml << MARIMO
 [ai]
 enabled = true
 inline_tooltip = false
@@ -101,7 +118,7 @@ mode = "agent"
 rules = ""
 [ai.custom_providers.jetstream]
 api_key = "jetstream"
-base_url = "https://llm.jetstream-cloud.org/v1"
+base_url = "${LLM_PROXY_URL}"
 [ai.models]
 autocomplete_model = "jetstream/gpt-oss-120b"
 chat_model = "jetstream/gpt-oss-120b"

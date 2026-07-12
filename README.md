@@ -12,6 +12,8 @@ AI4ScientificCoding provides a multi-user JupyterHub deployment for scientific c
 - Jupyter AI plus the local course persona package in `jupyter-ai/`
 - code-server exposed in JupyterLab as `VS Code + Cline`
 - Cline extension and CLI configured from `.env`
+- A per-user persistent work volume plus a shared JSONL log volume for LLM requests and responses
+- A local FastAPI LLM proxy inside each spawned user container so Jupyter AI, Cline, and Marimo can share the same logged upstream path
 - Optional GPU access through the NVIDIA Docker runtime
 
 ## Repository Layout
@@ -114,6 +116,11 @@ CLINE_API_KEY=...
 CLINE_BASE_URL=https://llm.jetstream-cloud.org/v1
 CLINE_MODEL=Kimi-K2.6
 CLINE_VERSION=3.88.1
+
+# Optional overrides for storage and logging volumes.
+# If you move Docker's data-root to the Jetstream attached disk, these named volumes will live on that disk too.
+# JUPYTERHUB_USER_STORAGE_VOLUME_PREFIX=jupyterhub-user
+# JUPYTERHUB_LLM_LOG_VOLUME=jupyterhub-llm-logs
 ```
 
 Optional Jupyter AI provider keys:

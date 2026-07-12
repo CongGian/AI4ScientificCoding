@@ -144,6 +144,22 @@ c.Authenticator.allowed_users = [
 docker restart jupyterhub
 ```
 
+## 💾 Persistent Storage and LLM Logging
+
+The notebook config now mounts a host-path directory into each user container for persistent per-user workspaces:
+
+- `/media/volume/jupyterhub/users/{username}` at `/home/jovyan/work` for per-user notebooks and files
+- `jupyterhub-llm-logs` at `/var/log/llm-proxy` for JSONL logs of prompts and model responses
+
+Before starting JupyterHub, create the base directory on the VM and mount it from the Jetstream volume, for example:
+
+```bash
+sudo mkdir -p /media/volume/jupyterhub/users
+sudo chown -R root:root /media/volume/jupyterhub
+```
+
+If you prefer Docker-managed named volumes instead, set `JUPYTERHUB_USER_STORAGE_ROOT` to a Docker volume root pattern before starting the Hub.
+
 ### Removing a User
 Simply remove their username from the list above and restart.
 

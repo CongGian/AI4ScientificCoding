@@ -1,0 +1,69 @@
+services:
+  interaction-db:
+    image: postgres:18
+    container_name: interaction-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-llm_research}
+      POSTGRES_USER: ${POSTGRES_USER:-llm_gateway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - type: bind
+        source: ${JETSTREAM_DATA_ROOT:?Set JETSTREAM_DATA_ROOT in .env}/research/postgres
+        target: /var/lib/postgresql
+        bind:
+          create_host_path: false
+    networks:
+      - research-backend
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  llm-gateway:
+    build:
+      context: ./llm-proxy
+    image: ai4scientificcoding-llm-gateway:latest
+    container_name: llm-gateway
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: interaction-db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-llm_research}
+      POSTGRES_USER: ${POSTGRES_USER:-llm_gateway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      LLM_UPSTREAM_BASE_URL: ${LLM_UPSTREAM_BASE_URL:?Set LLM_UPSTREAM_BASE_URL in .env}
+      LLM_UPSTREAM_API_KEY: ${LLM_UPSTREAM_API_KEY:?Set LLM_UPSTREAM_API_KEY in .env}
+      LLM_GATEWAY_SIGNING_KEY: ${LLM_GATEWAY_SIGNING_KEY:?Set LLM_GATEWAY_SIGNING_KEY in .env}
+      LLM_DEPLOYMENT_ID: ${LLM_DEPLOYMENT_ID:?Set LLM_DEPLOYMENT_ID in .env}
+      LLM_CONSENT_VERSION: ${LLM_CONSENT_VERSION:-unspecified}
+      LLM_CAPTURE_CONTENT: ${LLM_CAPTURE_CONTENT:-true}
+      LLM_MAX_CAPTURE_BYTES: ${LLM_MAX_CAPTURE_BYTES:-10485760}
+      LLM_LOGGING_FAILURE_POLICY: ${LLM_LOGGING_FAILURE_POLICY:-deny}
+    networks:
+      - jupyterhub-network
+      - research-backend
+    depends_on:
+      interaction-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/ready', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+networks:
+  jupyterhub-network:
+    name: ${HUB_NETWORK:-jupyterhub-network}
+    external: true
+  research-backend:
+    internal: true

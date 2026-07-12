@@ -7,6 +7,9 @@ env
 
 # Ignore virtual environment folders
 venv/
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
 # Ignore build output
 dist/
 build/.env

@@ -25,8 +25,9 @@ RUN conda install -c conda-forge nodejs -y && \
 # behavior and persona.
 COPY jupyterhub/notebook-requirements.txt /tmp/notebook-requirements.txt
 COPY jupyter-ai /tmp/jupyter-ai
-RUN pip install --no-cache-dir -r /tmp/notebook-requirements.txt /tmp/jupyter-ai && \
-    rm -rf /tmp/jupyter-ai /tmp/notebook-requirements.txt
+COPY llm-proxy /tmp/llm-proxy
+RUN pip install --no-cache-dir -r /tmp/notebook-requirements.txt /tmp/jupyter-ai /tmp/llm-proxy && \
+    rm -rf /tmp/jupyter-ai /tmp/llm-proxy /tmp/notebook-requirements.txt
 
 # Work around Marimo thinking-mode checks for the OpenAI-compatible Jetstream
 # provider used in the workshop environment.
