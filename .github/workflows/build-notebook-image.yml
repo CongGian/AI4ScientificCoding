@@ -15,7 +15,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ncstate-ai-workshop/ai4scientificcoding-notebook
 
 jobs:
   build:
@@ -23,6 +22,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: ai4scientificcoding-notebook
+            dockerfile: ./jupyterhub/Dockerfile.notebook
+          - name: ai4scientificcoding-llm-gateway
+            dockerfile: ./llm-proxy/Dockerfile
 
     steps:
       - name: Check out repository
@@ -55,22 +62,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve image namespace
+        id: image-namespace
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "namespace=${owner}" >> "$GITHUB_OUTPUT"
+
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.image-namespace.outputs.namespace }}/${{ matrix.image.name }}
           tags: |
             type=ref,event=branch
             type=ref,event=tag
             type=sha,prefix=sha-
             type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build and publish notebook image
+      - name: Build and publish ${{ matrix.image.name }} image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./jupyterhub/Dockerfile.notebook
+          file: ${{ matrix.image.dockerfile }}
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}

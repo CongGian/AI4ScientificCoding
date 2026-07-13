@@ -13,10 +13,15 @@ export XDG_DATA_HOME=/home/jovyan/.local/share
 # Cline provider defaults. JupyterHub passes CLINE_API_KEY from .env when set.
 # Keep the key out of tracked files; leave it empty here if not provided.
 export CLINE_API_PROVIDER=${CLINE_API_PROVIDER:-openai-compatible}
-export CLINE_API_KEY=${CLINE_API_KEY:-}
+export OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://llm.jetstream-cloud.org/v1}
+export OPENAI_API_BASE=${OPENAI_API_BASE:-${OPENAI_BASE_URL}}
+export OPENAI_API_KEY=${OPENAI_API_KEY:-${CLINE_API_KEY:-}}
+export CLINE_API_KEY=${CLINE_API_KEY:-${OPENAI_API_KEY}}
 export CLINE_MODEL=${CLINE_MODEL:-Kimi-K2.6}
-export CLINE_BASE_URL=${CLINE_BASE_URL:-https://llm.jetstream-cloud.org/v1}
+export CLINE_BASE_URL=${CLINE_BASE_URL:-${OPENAI_BASE_URL}}
 export CLINE_VERSION=${CLINE_VERSION:-3.88.1}
+export MARIMO_BASE_URL=${MARIMO_BASE_URL:-${OPENAI_BASE_URL}}
+export MARIMO_API_KEY=${MARIMO_API_KEY:-${OPENAI_API_KEY}}
 
 # Ensure the per-user settings directories exist before writing config files.
 mkdir -p /home/jovyan/.local/share/code-server/User
@@ -93,15 +98,15 @@ fi
 
 # Configure Marimo AI settings
 mkdir -p /home/jovyan/.config/marimo
-cat > /home/jovyan/.config/marimo/marimo.toml << 'MARIMO'
+cat > /home/jovyan/.config/marimo/marimo.toml << MARIMO
 [ai]
 enabled = true
 inline_tooltip = false
 mode = "agent"
 rules = ""
 [ai.custom_providers.jetstream]
-api_key = "jetstream"
-base_url = "https://llm.jetstream-cloud.org/v1"
+api_key = "${MARIMO_API_KEY}"
+base_url = "${MARIMO_BASE_URL}"
 [ai.models]
 autocomplete_model = "jetstream/gpt-oss-120b"
 chat_model = "jetstream/gpt-oss-120b"
