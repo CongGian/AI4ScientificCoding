@@ -5,8 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY pyproject.toml README.md /app/
-COPY llm_proxy /app/llm_proxy
+COPY llm-proxy/pyproject.toml llm-proxy/README.md /app/
+COPY llm-proxy/llm_proxy /app/llm_proxy
 
 RUN pip install --no-cache-dir .
 
